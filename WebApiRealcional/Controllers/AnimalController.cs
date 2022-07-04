@@ -11,18 +11,18 @@ namespace WebApiRealcional.Controllers
     [ApiController]
     public class AnimalController : ControllerBase
     {
-        private readonly DataBaseContext _dbContext;
+        private readonly DataBaseContext _DbContext;
 
         public AnimalController(DataBaseContext dataBaseContext)
         {
-            _dbContext = dataBaseContext;
+            _DbContext = dataBaseContext;
         }
 
         [HttpGet("get")]
         public IActionResult getAnimal()
         {
                 //obtener a todos los animales con su relacion 
-            return Ok(_dbContext.animal.Include(a => a.Tipos).ToArray()) ;
+            return Ok(_DbContext.animal.Include(a => a.Tipos).ToArray()) ;
         }
 
         [HttpPost("Insert")]
@@ -30,35 +30,64 @@ namespace WebApiRealcional.Controllers
         {
             try
             {
-               var tipo = _dbContext.tipos.Where(c => c.TiposId == animalRequest.TiposId).FirstOrDefault(); 
+               var tipo = _DbContext.tipos.Where(c => c.TiposId == animalRequest.TiposId).FirstOrDefault(); 
                 if (tipo == null)
                 {
                     return StatusCode(400, "No se encontro el objeto a relacionar");
                 }
                 animalRequest.Tipos = tipo;
-                _dbContext.animal.Add(animalRequest);
-                _dbContext.SaveChanges();
+                _DbContext.animal.Add(animalRequest);
+                _DbContext.SaveChanges();
                 return Ok(animalRequest);
             }
             catch (System.Exception ex)
             {
-
                 return StatusCode(500, "Error:=> " + ex);
             }
+        }
+
+        [HttpPut("update/")]
+        public IActionResult updateAnimal([FromForm] Animal animalRequest)
+        { // que es TiposAnimales
+            var tipo = _DbContext.tipos.Where(t => t.TiposId == animalRequest.TiposId).FirstOrDefault();
+            var animal = _DbContext.animal.Where(t => t.AnimalId == animalRequest.AnimalId).FirstOrDefault();
+                
+            if (tipo != null && animal != null)
+            {
+                animal.Name = animalRequest.Name;
+                tipo.Name = animalRequest.Name;
+                _DbContext.animal.Update(animal);
+                _DbContext.SaveChanges();
+                return Ok(tipo);
+
+            }
+            return StatusCode(400, $"El elemento con id {animalRequest.AnimalId} no se encuentra");
+        }
+
+        [HttpDelete("delete/")]
+        public IActionResult deleteAnimal(int id)
+        {
+            var animal = _DbContext.animal.Where(t => t.AnimalId == id).FirstOrDefault();
+
+            if (animal != null)
+            {
+                _DbContext.animal.Remove(animal);
+                _DbContext.SaveChanges();
+                return Ok(animal);
+
+            }
+            return StatusCode(400, "el id no pertenece a ningun registro");
         }
 
         //Consumiendo este metodo lo puse aqui por que tenia hueva de hacer mas
         [HttpPost("Pruebas/")]
         public IActionResult pruebas([FromBody] UserEmail request)
         {
-
-
             var response = new {
                mensaje = "Email generado correctamente",
                statusCode = 200,
                Email = request.generateEmail()                
             };
-             
 
             return Ok(response);
         }
